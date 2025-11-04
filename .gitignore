@@ -1,3 +1,14 @@
+#personal notes
 obsidian_notes
-*.o
 
+#c and asm related
+*.o
+*.out
+
+#rust related
+rust-compiler/**/target
+rust-compiler/**/debug
+**/*.rs.bk
+**/mutants.out*/
+#maybe only for windoze but its in the github rust gitignore
+*.pdb 
