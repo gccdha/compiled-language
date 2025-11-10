@@ -7,6 +7,8 @@ use log::{trace, debug, info, error, warn}; //set err level using `export RUST_L
 /*
 * Exit codes:
 * 0 -> good
+* 10 -> unknown token
+* 20 -> unimplemented
 * 64 -> invalid options
 * 66 -> error finding or reading file
 * */
@@ -51,7 +53,7 @@ fn main() -> ExitCode {
 enum Token {
     ReturnTok,
     IntTok(i32),
-    Period
+    Period,
 }
 
 impl fmt::Display for Token {
@@ -65,25 +67,68 @@ impl fmt::Display for Token {
 }
 
 
-fn lexer(s: String) -> Vec<Token> {
+fn lexer(s: String) -> Result<Vec<Token>, ExitCode> {
     info!("Starting lexer");
-    let exploded: Vec<char> = s.chars().collect(); //READ: not exactly sure why we need all these methods
-    lex_helper(exploded.as_slice(), vec![])
-}
-
-fn lex_helper(s: &[char], tokens: Vec<Token>) -> Vec<Token> {
-    match s {
-        ['0'..='9', rest @ ..] => lex_num(s, tokens), //READ: understand syntax
-        ['a'..='z' | 'A'..='Z', rest @ ..] => lex_word(s, tokens),
-        ['.', rest @ ..] => tokens.push(Token::Period)
+    let exploded: Vec<&str> = s.split_whitespace().collect(); //READ: not exactly sure why we need all these methods (Could i just use a string slice 🤔)
+    let mut tokens: Vec<Token> = vec![];
+    match lex_helper(&exploded[..] , &mut tokens) {
+        Ok(_) => Ok(tokens),
+        Err(b) => Err(b)
     }
 }
 
-fn lex_num(s: &[char], tokens: Vec<Token>) -> Token {
-    
+
+//TODO: make sure we are handling newline propperly and also tab characters
+//TODO: comment and logging
+//
+//TODO: make sure that characters at the end of strings are accounted for
+fn lex_helper<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+    match s.first() {
+        None =>, //empty slice
+        Some(first) if first.is_empty() =>, //empty string
+        Some(first) if first.starts_with("***") =>, //3 stars
+        Some(first) =>, match first.chars().next() {
+            Some(c) if c.is_ascii_digit() =>, //starts with is_ascii_digit
+            Some(c) if c.is_ascii_alphabetic() =>, //letter
+            Some('*') => //star
+        }
+    }
 }
 
-fn lex_word(s: &[char], tokens: Vec<Token>) -> Token {
+//TODO: comment and add logging
+fn lex_num<'a>(s: &[char], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+    let mut output = String::from("");
+    let mut is_float: bool = false;
+    for chars in s {
+        match *chars {
+            c @ '0'..='9' => output.push(c),
+            '.' => {
+                if is_float {return Err(ExitCode::from(10));}
+                else {output.push('.'); is_float = true;}
+            },
+            ' ' => break,
+            _ => return Err(ExitCode::from(10)),
+        }
+    }
+
+    if !is_float {
+        tokens.push(Token::IntTok(output.parse().unwrap()));
+    }
+    else{
+        error!("floats not implemented yet!");
+        return Err(ExitCode::from(20));
+    }
+    let (_, rest) = s.split_at(output.len());
+    lex_helper(rest, tokens)
+}
+
+//WARN: maybe i just need to return &mut Vec<Token>? Check what the difference is...
+fn lex_word<'a>(s: &[char], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+    match s {
+        "first".split() => tokens.push(Token::ReturnTok),
+        _ => return Err(ExitCode::FAILURE)
+    }
+    lex_helper(s, tokens)
 }
 
 //TODO: Testing
