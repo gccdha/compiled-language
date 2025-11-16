@@ -84,29 +84,31 @@ fn lexer(s: String) -> Result<Vec<Token>, ExitCode> {
 //TODO: make sure that characters at the end of strings are accounted for
 fn lex_helper<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
     match s.first() {
-        None =>, //empty slice
-        Some(first) if first.is_empty() =>, //empty string
-        Some(first) if first.starts_with("***") =>, //3 stars
-        Some(first) =>, match first.chars().next() {
-            Some(c) if c.is_ascii_digit() =>, //starts with is_ascii_digit
-            Some(c) if c.is_ascii_alphabetic() =>, //letter
-            Some('*') => //star
+        None => Ok(tokens), //empty slice
+        Some(first) if first.is_empty() => lex_helper(&s[1..], tokens), //empty string
+        //Some(first) if first.starts_with("**") =>, //2 or 3 stars
+        Some(first) => match first.chars().next() {//WARN: why .next()?
+//
+            Some(c) if c.is_ascii_digit() => lex_num(s,tokens), //starts with is_ascii_digit
+            Some(c) if c.is_ascii_alphabetic() => lex_word(s,tokens), //letter
+            //Some('*') => //star
+            _ => Err(ExitCode::from(20))
         }
     }
 }
 
 //TODO: comment and add logging
-fn lex_num<'a>(s: &[char], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+fn lex_num<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
     let mut output = String::from("");
     let mut is_float: bool = false;
-    for chars in s {
-        match *chars {
+    for chars in s.first().unwrap().chars() {
+        match chars {
             c @ '0'..='9' => output.push(c),
             '.' => {
                 if is_float {return Err(ExitCode::from(10));}
                 else {output.push('.'); is_float = true;}
             },
-            ' ' => break,
+            ' ' => break, //NOTE: maybe do something like is_ascii_whitespace?
             _ => return Err(ExitCode::from(10)),
         }
     }
