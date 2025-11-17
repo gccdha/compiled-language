@@ -30,7 +30,7 @@ fn main() -> ExitCode {
             return ExitCode::from(66);
             },
         Ok(file) => {
-            trace!("Successfully opened file {}", display);
+            trace!("Successfully opened file {:?}", display);
             file
         },
     };
@@ -54,16 +54,35 @@ enum Token {
     ReturnTok,
     IntTok(i32),
     Period,
+    The,
+    Value,
 }
+
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Token::ReturnTok => write!(f, "RETURN"),
-            Token::IntTok(val) => write!(f, "INT<{}>", val),
+            Token::IntTok(val) => write!(f, "INT<{:?}>", val),
             Token::Period => write!(f, "PERIOD"),
+            Token::The => write!(f, "THE"),
+            Token::Value => write!(f, "VALUE"),
         }
     }
+}
+
+struct PreTree<'p>(&'p Vec<Token>);
+impl fmt::Display for PreTree <'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for token in self.0 {
+            match write!(f, "{}", token) {
+                Ok(_) => continue,
+                Err(a) => return Err(a)
+            }
+        }
+        return Ok(());
+    }
+    
 }
 
 
@@ -79,33 +98,45 @@ fn lexer(s: String) -> Result<Vec<Token>, ExitCode> {
 
 
 //TODO: make sure we are handling newline propperly and also tab characters
-//TODO: comment and logging
 //
 //TODO: make sure that characters at the end of strings are accounted for
-fn lex_helper<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
-    match s.first() {
-        None => Ok(tokens), //empty slice
-        Some(first) if first.is_empty() => lex_helper(&s[1..], tokens), //empty string
-        //Some(first) if first.starts_with("**") =>, //2 or 3 stars
-        Some(first) => match first.chars().next() {//WARN: why .next()?
 //
-            Some(c) if c.is_ascii_digit() => lex_num(s,tokens), //starts with is_ascii_digit
-            Some(c) if c.is_ascii_alphabetic() => lex_word(s,tokens), //letter
-            //Some('*') => //star
-            _ => Err(ExitCode::from(20))
+//man recursive lexing routine
+fn lex_helper<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+    let word = s.first();
+    debug!("Running lex_helper on: {:?} ", word);
+    trace!("s = {:?}, tokens = {}", s, PreTree(tokens));
+    match word {
+        None => Ok(tokens),                                                    //empty slice
+        Some(first) if first.is_empty() => lex_helper(&s[1..], tokens), //empty string
+        //Some(first) if first.starts_with("**") =>,                             //2 or 3 stars
+        Some("return")  => tokens.push(Token::ReturnTok),
+        Some("the") => tokens.push(Token::The), 
+        Some("value") => tokens.push(Token::Value),
+        Some(first) => match first.chars().next() {
+            Some(c) if c.is_ascii_digit() => lex_num(s,tokens),          //starts with number
+            //Some(c) if c.is_ascii_alphabetic() => lex_word(s,tokens),    //starts with letter
+            //Some('*') =>                                                       //starts with star
+            _ => Err(ExitCode::from(20))                                       //unimplemented
         }
     }
+    lex_helper(&s[1..], tokens)
 }
 
-//TODO: comment and add logging
+//function to lex strings starting with numbers
 fn lex_num<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
     let mut output = String::from("");
     let mut is_float: bool = false;
-    for chars in s.first().unwrap().chars() {
+    let word = s.first().unwrap();
+
+    debug!("Running lex_num on: {} ", word);
+    trace!("s = {:?}, tokens = {} ", s, PreTree(tokens));
+
+    for chars in word.chars() {
         match chars {
             c @ '0'..='9' => output.push(c),
             '.' => {
-                if is_float {return Err(ExitCode::from(10));}
+                if is_float {return Err(ExitCode::from(10));} //invalid if >1 period found
                 else {output.push('.'); is_float = true;}
             },
             ' ' => break, //NOTE: maybe do something like is_ascii_whitespace?
@@ -120,18 +151,19 @@ fn lex_num<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>,
         error!("floats not implemented yet!");
         return Err(ExitCode::from(20));
     }
-    let (_, rest) = s.split_at(output.len());
-    lex_helper(rest, tokens)
+    lex_helper(&s[1..], tokens)
 }
 
 //WARN: maybe i just need to return &mut Vec<Token>? Check what the difference is...
-fn lex_word<'a>(s: &[char], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
-    match s {
-        "first".split() => tokens.push(Token::ReturnTok),
-        _ => return Err(ExitCode::FAILURE)
-    }
-    lex_helper(s, tokens)
-}
+//
+// //function to lex words that are not keywords (keywords are handled in lex_helper)
+// fn lex_word<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Token>, ExitCode> {
+//     match *s.first().unwrap() {
+//
+//         _ => return Err(ExitCode::from(20))
+//     }
+//     lex_helper(&s[1..], tokens)
+// }
 
 //TODO: Testing
 //TODO: Lexer
