@@ -4,7 +4,9 @@ use std::path::Path;
 use std::process::ExitCode;
 use log::{trace, debug, info, error}; //set err level using `export RUST_LOG=<level>`
 mod lexer;
+mod parser;
 use crate::lexer::*;
+use crate::parser::*;
 /*
 * Exit codes:
 * 0 -> good
