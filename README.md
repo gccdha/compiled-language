@@ -46,5 +46,6 @@ I am using "[Writing a C Compiler](https://norasandler.com/2017/11/29/Write-a-Co
 - [ ] Better comments
 - [ ] Better logging
 - [ ] Clean up code
+- [ ] Test Cases
 - [ ] Write-Up
 - [ ] Github Release
