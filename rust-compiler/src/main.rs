@@ -5,8 +5,10 @@ use std::process::ExitCode;
 use log::{trace, debug, info, error}; //set err level using `export RUST_LOG=<level>`
 mod lexer;
 mod parser;
+mod codegen;
 use crate::lexer::*;
 use crate::parser::*;
+use crate::codegen::*;
 /*
 * Exit codes:
 * 0 -> good
@@ -24,6 +26,7 @@ fn main() -> ExitCode {
     //TODO: write command line argument parsing function once you have better rust knowledge
     let path = Path::new("stage_1.md");
     let display = path.display();
+    let output  = String::from("stage_1");
 
     //open file
     trace!("Opening file {}", display);
@@ -50,16 +53,26 @@ fn main() -> ExitCode {
 
 
 
-    match lexer(s) {
+    let lexed = match lexer(s) {
         Ok(tokens) => {
             info!("Lexer finished");
             debug!("Tokens: {}", PreTree(&tokens));
+            tokens
         },
         Err(code) => {
             error!("Error in lexing. Exit code: {:?}", code);
             return code;
         }
-    }
+    };
+
+    let ast = parser(lexed);
+    debug!("AST:{}", ast);
+
+
+    codegen(ast, output);
+    
+    info!("Compilation complete!");
+
     return ExitCode::SUCCESS;
 }
 

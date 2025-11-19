@@ -2,6 +2,7 @@ use std::fmt;
 use std::process::ExitCode;
 use log::{trace, debug, info, error}; //set err level using `export RUST_LOG=<level>`
 
+#[derive(Debug)]
 pub enum Token {
     ReturnTok,
     IntTok(i32),
@@ -9,7 +10,6 @@ pub enum Token {
     The,
     Value,
 }
-
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -69,11 +69,12 @@ fn lex_helper<'a>(s: &[&str], tokens: &'a mut Vec<Token>) -> Result<&'a Vec<Toke
         Some(&"return")  => tokens.push(Token::ReturnTok),
         Some(&"the") => tokens.push(Token::The), 
         Some(&"value") => tokens.push(Token::Value),
+        Some(&".") => tokens.push(Token::Period),                                   //WARN: period must have space before it
         Some(first) => match first.chars().next() {
             Some(c) if c.is_ascii_digit() => return lex_num(s,tokens),        //starts with number
             //Some(c) if c.is_ascii_alphabetic() => lex_word(s,tokens),               //starts with letter
             //Some('*') =>                                                            //starts with star
-            _ => {error!("Unknown token: {:?}", word); return Err(ExitCode::from(10))}                                     //unimplemented
+            _ => {error!("Unknown token: {:?}", word); return Err(ExitCode::from(10))}//unimplemented
         }
     }
     lex_helper(&s[1..], tokens)
