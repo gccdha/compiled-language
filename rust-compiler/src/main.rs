@@ -6,16 +6,18 @@ use log::{trace, debug, info, error}; //NOTE: set err level using `export RUST_L
 mod lexer;
 mod parser;
 mod codegen;
-use crate::lexer::*;
-use crate::parser::*;
-use crate::codegen::*;
+use crate::{lexer::*,parser::*,codegen::*};
+
 /*
 * Exit codes:
 * 0 -> good
-* 10 -> unknown token
+* 10 -> unexpected Token
+* 11 -> unexpected Expr
 * 20 -> unimplemented
+* 30 -> assembly error
 * 64 -> invalid options
 * 66 -> error finding or reading file
+* 74 -> write error
 * */
 
 
@@ -87,7 +89,13 @@ fn main() -> ExitCode {
 
 
     //pass AST to codegen
-    codegen(ast, output);
+    let _ = match codegen(ast, output){
+        Ok(_) => info!("Code generation finished"),
+        Err(code) => {
+            error!("Error in codegen. Exit code: {:?}", code);
+            return code;
+        }
+    };
 
 
     info!("Compilation complete!");
@@ -96,4 +104,3 @@ fn main() -> ExitCode {
 
 //TODO: Testing
 
-//TODO: Parser

@@ -1,1 +1,1 @@
-return the value -1 .
+return the value 67 .
