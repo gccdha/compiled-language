@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process::ExitCode;
-use log::{trace, debug, info, error}; //set err level using `export RUST_LOG=<level>`
+use log::{trace, debug, info, error}; //NOTE: set err level using `export RUST_LOG=<level>`
 mod lexer;
 mod parser;
 mod codegen;
@@ -20,16 +20,21 @@ use crate::codegen::*;
 
 
 fn main() -> ExitCode {
+
+
+    //start logging
     env_logger::init();
     info!("Compiler started");
 
+
     //TODO: write command line argument parsing function once you have better rust knowledge
-    let path = Path::new("stage_1.md");
+    let path = Path::new("stage_1.md"); //input file
     let display = path.display();
-    let output  = String::from("stage_1");
+    let output  = String::from("stage_1"); //output file
+
 
     //open file
-    trace!("Opening file {}", display);
+    debug!("Opening file {:?}", display);
     let mut file = match File::open(&path) {
         Err(why) => {
             error!("couldn't open {:?}: {:?}", display, why);
@@ -41,7 +46,8 @@ fn main() -> ExitCode {
         },
     };
 
-    //extract contents as string
+
+    //extract file contents as string
     let mut s = String::new();
     match file.read_to_string(&mut s) {
         Err(why) => {
@@ -52,11 +58,11 @@ fn main() -> ExitCode {
     }
 
 
-
+    //pass string to lexer
     let lexed = match lexer(s) {
         Ok(tokens) => {
             info!("Lexer finished");
-            debug!("Tokens: {}", PreTree(&tokens));
+            trace!("Tokens: {:?}", tokens);
             tokens
         },
         Err(code) => {
@@ -65,14 +71,26 @@ fn main() -> ExitCode {
         }
     };
 
-    let ast = parser(lexed);
-    debug!("AST:{}", ast);
-
-
-    codegen(ast, output);
     
-    info!("Compilation complete!");
+    //pass tokens to parser
+    let ast = match parser(lexed){
+        Ok(tree) => {
+            info!("Parser finished");
+            debug!("AST:{:?}", tree);
+            tree
+        }, 
+        Err(code) => {
+            error!("Error in parsing. Exit code: {:?}", code);
+            return code;
+        }
+    };
 
+
+    //pass AST to codegen
+    codegen(ast, output);
+
+
+    info!("Compilation complete!");
     return ExitCode::SUCCESS;
 }
 

@@ -34,7 +34,7 @@ pub fn codegen(ast: AST, output: String) {
 }
 
 fn asmgen(ast: Expr, output: &mut File) {
-    trace!("AST: {}", ast);
+    trace!("AST: {:?}", ast);
     match ast {
         Expr::Return(e) => {
             output.write_all(b"mov $60, %rax\n").expect("error writing for Expr::Return");
