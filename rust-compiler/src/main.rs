@@ -101,6 +101,3 @@ fn main() -> ExitCode {
     info!("Compilation complete!");
     return ExitCode::SUCCESS;
 }
-
-//TODO: Testing
-
